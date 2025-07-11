@@ -56,11 +56,12 @@ npm install`}
         code={`sheikh-llm-docs/
 ├── app/
 │   ├── layout.tsx                 # Root layout (mobile-first, with sidebar)
+│   ├── ClientRootLayout.tsx       # Client-side root layout for interactive components
 │   ├── page.tsx                   # Home page
 │   ├── components/
 │   │   └── page.tsx               # Component docs page
-│   └── getting-started/
-│       └── page.tsx               # This guide's content
+│   ├── getting-started/
+│   │   └── page.tsx               # This guide's content
 │   └── api-reference/
 │       └── page.tsx               # API Reference documentation page
 ├── api/
@@ -77,16 +78,30 @@ npm install`}
 │   └── flag-bd.png                # Bangladesh flag icon
 ├── styles/
 │   └── globals.css                # Tailwind base styles
-├── utils/                         # Utility functions (e.g., for LLM calls, MDX formatting)
 ├── models/                        # LLM model registry
+│   └── registry.ts
 ├── prompts/                       # LLM system prompts
+│   ├── sheikh-1.5-ui.md
+│   ├── sheikh-2.5-cog-thinking.md
+│   └── sheikh-3.0-legacy.md
 ├── types/                         # TypeScript type definitions
+│   └── schema.ts
+├── utils/                         # Utility functions (e.g., for LLM calls, MDX formatting)
+│   ├── callGemini.ts
+│   ├── loadPrompt.ts
+│   └── mdxFormatter.ts
 ├── tests/                         # Unit and integration tests
-├── vercel.json                    # Vercel deployment configuration
-├── next.config.js
-├── tailwind.config.ts
-├── tsconfig.json
-└── package.json`}
+│   ├── api/
+│   │   └── completions.test.ts
+│   └── utils/
+│       └── mdxFormatter.test.ts
+├── .env.local                     # Environment variables (create this file)
+├── jest.config.js                 # Jest configuration
+├── jest.setup.ts                  # Jest setup file
+├── next.config.js                 # Next.js settings
+├── tailwind.config.ts             # Tailwind CSS configuration
+├── tsconfig.json                  # TypeScript configuration
+└── package.json                   # Project dependencies and scripts`}
         language="bash"
         type="code"
       />
