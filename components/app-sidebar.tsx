@@ -1,7 +1,9 @@
+// This file is no longer used in the main layout but kept for reference if a sidebar is desired later.
+// It's commented out in app/layout.tsx to use the new Header component instead.
 "use client"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Brain, GalleryVerticalEnd, Search } from "lucide-react"
+import { Brain, GalleryVerticalEnd, Search } from 'lucide-react'
 
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
