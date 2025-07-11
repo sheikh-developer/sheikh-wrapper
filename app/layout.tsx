@@ -1,29 +1,28 @@
-import "./globals.css"
-import { Inter } from 'next/font/google'
-import { SidebarProvider } from "@/components/ui/sidebar"
-import { AppSidebar } from "@/components/app-sidebar"
-import Header from "@/components/header" // Import the new Header component
+import type React from "react"
+import type { Metadata } from "next"
+import { Inter } from "next/font/google"
+import "../styles/globals.css"
+import ClientRootLayout from "./ClientRootLayout"
 
 const inter = Inter({ subsets: ["latin"] })
 
-export const metadata = {
-  title: "Powerfully Simple - Performance Servers",
-  description: "Experience the next generation of server solutions designed for speed, reliability, and effortless management.",
+// Metadata is for server components, so it should be outside the client component
+// and will be picked up by Next.js
+export const metadata: Metadata = {
+  title: "Sheikh LLM Docs",
+  description: "The official documentation for the Sheikh LLM ecosystem.",
     generator: 'v0.dev'
 }
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode
-}) {
+}>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${inter.className} antialiased`}>
-        <SidebarProvider>
-          <Header /> {/* Add the new Header component */}
-          <main className="flex-1 overflow-auto">{children}</main> {/* Removed padding from main */}
-        </SidebarProvider>
+      <body className={`${inter.className} bg-background text-foreground`}>
+        <ClientRootLayout>{children}</ClientRootLayout>
       </body>
     </html>
   )

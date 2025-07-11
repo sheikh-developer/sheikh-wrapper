@@ -1,47 +1,55 @@
 import type { Metadata } from "next"
-import Link from "next/link"
-import { FaGithub, FaTelegram, FaReact } from "react-icons/fa"
-import HeroSection from "@/components/hero-section"
-import FeatureGrid from "@/components/feature-grid"
-import ManagementDashboardPreview from "@/components/management-dashboard-preview"
-import CallToAction from "@/components/call-to-action"
 
 export const metadata: Metadata = {
-  title: "Introduction | Sheikh Wrapper Docs",
-  description: "Welcome to the Sheikh LLM MCP-compatible documentation site",
+  title: "Home | Sheikh LLM Docs",
+  description: "Welcome to the official documentation for the Sheikh LLM ecosystem.",
 }
 
 export default function HomePage() {
   return (
-    <div className="flex flex-col min-h-[100dvh]">
-      <HeroSection />
-      <FeatureGrid />
-      <ManagementDashboardPreview />
-      <CallToAction />
-      <footer className="mt-10 flex flex-col items-center gap-2 border-t pt-6 text-sm text-muted-foreground">
-        <div className="mb-2 flex items-center gap-4">
-          <Link href="https://github.com/sheikh-llm" target="_blank" aria-label="GitHub">
-            <FaGithub className="text-xl hover:text-black" />
-          </Link>
-          <Link href="https://t.me/likhonsheikh" target="_blank" aria-label="Telegram">
-            <FaTelegram className="text-xl hover:text-blue-500" />
-          </Link>
-          <Link href="https://react.dev" target="_blank" aria-label="React">
-            <FaReact className="text-xl hover:text-sky-500" />
-          </Link>
-        </div>
-        <img
-          src="https://upload.wikimedia.org/wikipedia/commons/b/b2/Flag_Map_of_Bangladesh.png"
-          alt="Bangladesh"
-          className="h-8 w-8"
-        />
-        <p className="mt-2">
-          🇧🇩 Proudly built in Bangladesh by{" "}
-          <a href="https://t.me/likhonsheikh" className="underline">
-            Likhon Sheikh
-          </a>
-        </p>
-      </footer>
+    <div className="prose prose-invert max-w-none">
+      <h1>Welcome to Sheikh LLM Docs</h1>
+      <p>
+        This is the central hub for documentation, API references, and guides for building with the Sheikh LLM
+        ecosystem.
+      </p>
+
+      <h2>Enhanced Code Blocks</h2>
+      <p>
+        Our documentation uses enhanced code blocks to provide rich context, including project, file path, and type
+        metadata.
+      </p>
+
+      <pre>
+        <code className="language-tsx">
+          {" "}
+          {` \`\`\`tsx project="Sheikh UI Docs" file="components/page.tsx" type="react"
+import { Button } from "@/components/ui/button"
+
+export default function Example() {
+  return <Button>Test</Button>
+}
+\`\`\` `}
+        </code>
+      </pre>
+
+      <h2>System Architecture</h2>
+      <p>Below is a flowchart of the request lifecycle in a typical chat application built with our tools.</p>
+
+      <pre>
+        <code className="language-mermaid">
+          {" "}
+          {` \`\`\`mermaid title="Chat Request Flow" type="diagram"
+graph TD
+    A[User Input] --> B[Client App]
+    B --> C{/v1/chat/completions}
+    C --> D[Vercel Edge Function]
+    D --> E[LLM Model Logic]
+    E --> F[LLM Response]
+    F --> B
+\`\`\` `}
+        </code>
+      </pre>
     </div>
   )
 }

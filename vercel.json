@@ -1,5 +1,18 @@
 {
   "version": 2,
-  "builds": [{ "src": "api/v1/chat/completions.ts", "use": "@vercel/node" }],
-  "routes": [{ "src": "/v1/chat/completions", "dest": "api/v1/chat/completions.ts" }]
+  "builds": [
+    { "src": "next.config.js", "use": "@vercel/next" },
+    { "src": "api/v1/chat/completions.ts", "use": "@vercel/node" }
+  ],
+  "routes": [
+    {
+      "src": "/v1/chat/completions",
+      "dest": "/api/v1/chat/completions.ts",
+      "methods": ["POST"]
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/"
+    }
+  ]
 }

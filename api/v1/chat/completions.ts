@@ -7,6 +7,7 @@ import { sheikhModels } from "../../../../models/registry"
 import { loadPrompt } from "../../../../utils/loadPrompt"
 import { callGemini } from "../../../../utils/callGemini"
 import { convertToMarkdown, extractText } from "../../../../utils/mdxFormatter" // Import new formatter functions
+import type { VercelRequest, VercelResponse } from "@vercel/node"
 
 // Define the GET handler for the API route. This is a standard Next.js App Router convention for API routes.
 // The `request` object contains information about the incoming HTTP request.
@@ -118,4 +119,35 @@ export async function POST(request: Request) {
     console.error("Error in chat completions API:", error)
     return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
   }
+}
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" })
+  }
+
+  // A simple mock response mimicking the OpenAI API structure.
+  const mockResponse = {
+    id: `chatcmpl-${Date.now()}`,
+    object: "chat.completion",
+    created: Math.floor(Date.now() / 1000),
+    model: "sheikh-1.5-pro",
+    choices: [
+      {
+        index: 0,
+        message: {
+          role: "assistant",
+          content: "This is a mock response from the Sheikh LLM API endpoint!",
+        },
+        finish_reason: "stop",
+      },
+    ],
+    usage: {
+      prompt_tokens: 10,
+      completion_tokens: 12,
+      total_tokens: 22,
+    },
+  }
+
+  res.status(200).json(mockResponse)
 }
