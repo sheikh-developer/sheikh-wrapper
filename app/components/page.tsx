@@ -1,4 +1,5 @@
 import type { Metadata } from "next"
+import CodeBlock from "@/components/code-block" // Import CodeBlock
 
 export const metadata: Metadata = {
   title: "Components | Sheikh LLM Docs",
@@ -7,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ComponentsPage() {
   return (
-    <div className="prose prose-invert max-w-none">
+    <div className="prose dark:prose-invert max-w-none">
       <h1>UI Components</h1>
       <p>
         This section details the reusable UI components used throughout the Sheikh LLM Docs. These components are built
@@ -16,23 +17,22 @@ export default function ComponentsPage() {
 
       <h2>Button</h2>
       <p>The primary interactive element. Used for actions, navigation, and form submissions.</p>
-      <pre>
-        <code className="language-tsx">
-          {`import { Button } from "@/components/ui/button"
+      <CodeBlock
+        code={`import { Button } from "@/components/ui/button"
 
 export default function ButtonExample() {
   return <Button>Click Me</Button>
 }`}
-        </code>
-      </pre>
+        language="tsx"
+        file="components/ButtonExample.tsx"
+      />
 
       <h2>Card</h2>
       <p>
         A flexible container for grouping related content, often used for displaying information blocks or features.
       </p>
-      <pre>
-        <code className="language-tsx">
-          {`import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
+      <CodeBlock
+        code={`import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
 
 export default function CardExample() {
   return (
@@ -46,8 +46,9 @@ export default function CardExample() {
     </Card>
   )
 }`}
-        </code>
-      </pre>
+        language="tsx"
+        file="components/CardExample.tsx"
+      />
 
       {/* Add more component documentation here as needed */}
 

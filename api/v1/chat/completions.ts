@@ -1,153 +1,136 @@
-// This file handles the OpenAI-compatible chat completions API endpoint.
-// It acts as a proxy, routing requests to the appropriate Sheikh model and then to the Gemini API.
-
-// Import necessary modules from Next.js server, model registry, and utility functions.
 import { NextResponse } from "next/server"
-import { sheikhModels } from "../../../../models/registry"
-import { loadPrompt } from "../../../../utils/loadPrompt"
-import { callGemini } from "../../../../utils/callGemini"
-import { convertToMarkdown, extractText } from "../../../../utils/mdxFormatter" // Import new formatter functions
-import type { VercelRequest, VercelResponse } from "@vercel/node"
+// Assuming these utilities and types exist from previous context
+// In a real project, these would be in your project's root or lib folder
+import { sheikhModels } from "@/models/registry" // Adjust path as needed
+import { loadPrompt } from "@/utils/loadPrompt" // Adjust path as needed
+import { callGemini } from "@/utils/callGemini" // Adjust path as needed
+import { convertToMarkdown, extractText } from "@/utils/mdxFormatter" // Adjust path as needed
+import type { ChatCompletionRequest, ChatCompletionMessage } from "@/types/schema" // Adjust path as needed
 
-// Define the GET handler for the API route. This is a standard Next.js App Router convention for API routes.
-// The `request` object contains information about the incoming HTTP request.
+// Mock data for demonstration purposes. In a real app, this would come from a database or external service.
+const mockToolOutput = {
+  get_current_weather: {
+    location: "London, UK",
+    temperature: "15°C",
+    unit: "celsius",
+    description: "Partly cloudy",
+  },
+}
+
+export async function POST(request: Request) {
+  try {
+    const body: ChatCompletionRequest = await request.json()
+    const { model, messages, stream = false, format, tools, tool_choice } = body
+
+    // 1. Input Validation
+    if (!model || !messages || !Array.isArray(messages) || messages.length === 0) {
+      return NextResponse.json({ error: "Invalid request: 'model' and 'messages' are required." }, { status: 400 })
+    }
+
+    const config = sheikhModels[model as keyof typeof sheikhModels]
+    if (!config) {
+      return NextResponse.json({ error: `Invalid model ID: ${model}` }, { status: 400 })
+    }
+
+    // 2. Load System Prompt (MCP-like behavior)
+    const systemPrompt = await loadPrompt(config.promptFile)
+
+    // 3. Prepare Messages for LLM (including system prompt)
+    const messagesForGemini: ChatCompletionMessage[] = [{ role: "system", content: systemPrompt }, ...messages]
+
+    // 4. Call LLM (Gemini Proxy Layer)
+    const geminiPayload = {
+      model: config.model,
+      messages: messagesForGemini,
+      stream,
+      // Pass tools and tool_choice to the underlying LLM call if supported
+      tools: tools,
+      tool_choice: tool_choice,
+    }
+
+    const geminiResponse = await callGemini(geminiPayload)
+
+    // 5. Handle Streaming vs. Non-Streaming Responses
+    if (stream) {
+      // For streaming, return the raw ReadableStream
+      return new Response(geminiResponse as ReadableStream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      })
+    } else {
+      // For non-streaming, process the full response
+      const responseData = geminiResponse
+
+      // 6. MCP: Handle Tool Calls (Conceptual)
+      // In a real MCP, this would involve more complex state management and re-calling the LLM
+      // after tool execution. This is a simplified mock.
+      const firstChoice = responseData.choices?.[0]
+      if (firstChoice?.finish_reason === "tool_calls" && firstChoice.message?.tool_calls) {
+        const toolCalls = firstChoice.message.tool_calls
+        const toolOutputs: ChatCompletionMessage[] = []
+
+        for (const toolCall of toolCalls) {
+          const toolName = toolCall.function.name
+          // Mock tool execution
+          const output = mockToolOutput[toolName as keyof typeof mockToolOutput] || {
+            error: "Tool not found or failed",
+          }
+          toolOutputs.push({
+            role: "tool",
+            tool_call_id: toolCall.id,
+            content: JSON.stringify(output),
+          })
+        }
+
+        // For simplicity, we'll just return the tool call and its mock output.
+        // In a full MCP, you'd re-call Gemini with the tool outputs appended to messages.
+        responseData.choices[0].message.content = `Tool calls detected: ${JSON.stringify(toolCalls)}. Mock output: ${JSON.stringify(toolOutputs)}`
+        responseData.choices[0].finish_reason = "stop" // Change finish reason as we're not re-calling LLM
+      }
+
+      // 7. Apply Output Formatting
+      let content = responseData.choices?.[0]?.message?.content || ""
+      if (format === "markdown") {
+        content = convertToMarkdown(content)
+      } else if (format === "text") {
+        content = extractText(content)
+      }
+      responseData.choices[0].message.content = content
+
+      return NextResponse.json(responseData)
+    }
+  } catch (error: any) {
+    console.error("Error in chat completions API:", error)
+    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
+  }
+}
+
+// For simple GET requests (e.g., for testing from browser)
 export async function GET(request: Request) {
-  // For simplicity, this example uses GET, but typically chat completions are POST requests.
-  // We'll adapt the logic to handle the expected `model`, `messages`, and `stream` from a request body.
-  // In a real-world scenario, you'd parse `req.json()` for POST requests.
   const url = new URL(request.url)
-  const model = url.searchParams.get("model") || "sheikh-1.5-ui" // Default model
+  const model = url.searchParams.get("model") || "sheikh-1.5-ui"
   const messageContent = url.searchParams.get("message") || "Hello, how are you?"
   const stream = url.searchParams.get("stream") === "true"
-  const format = url.searchParams.get("format") // New: 'markdown' or 'text'
+  const format = url.searchParams.get("format")
 
-  const messages = [{ role: "user", content: messageContent }]
-
-  // Retrieve the configuration for the requested model from the registry.
-  const config = sheikhModels[model as keyof typeof sheikhModels]
-  // If the model ID is invalid, return a 400 Bad Request response.
-  if (!config) {
-    return NextResponse.json({ error: "Invalid model ID." }, { status: 400 })
+  const mockRequest: ChatCompletionRequest = {
+    model,
+    messages: [{ role: "user", content: messageContent }],
+    stream,
+    format,
   }
 
-  try {
-    // Load the system prompt associated with the selected model.
-    const systemPrompt = await loadPrompt(config.promptFile)
-    // Prepare the payload for the Gemini API call, including the system prompt and user messages.
-    const payload = {
-      model: config.model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      stream,
-    }
+  // Re-use the POST logic for GET requests for consistency
+  const response = await POST(
+    new Request(request.url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(mockRequest),
+    }),
+  )
 
-    // Call the Gemini API using the abstraction layer.
-    const geminiResponse = await callGemini(payload)
-
-    // If streaming is requested, return the ReadableStream directly.
-    if (stream) {
-      return new Response(geminiResponse as ReadableStream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      })
-    } else {
-      // If not streaming, parse the JSON response and format it to be OpenAI-compatible.
-      const responseData = geminiResponse
-      let content = responseData.choices?.[0]?.message?.content || ""
-
-      // Apply formatting if requested and not streaming
-      if (format === "markdown") {
-        content = convertToMarkdown(content)
-      } else if (format === "text") {
-        content = extractText(content)
-      }
-      responseData.choices[0].message.content = content
-
-      return NextResponse.json(responseData)
-    }
-  } catch (error: any) {
-    // Log and return an error response if anything goes wrong during the process.
-    console.error("Error in chat completions API:", error)
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
-  }
-}
-
-// For POST requests (more typical for chat completions), you would define a POST handler:
-export async function POST(request: Request) {
-  const { model, messages, stream = false, format } = await request.json() // New: 'format' parameter
-
-  const config = sheikhModels[model as keyof typeof sheikhModels]
-  if (!config) {
-    return NextResponse.json({ error: "Invalid model ID." }, { status: 400 })
-  }
-
-  try {
-    const systemPrompt = await loadPrompt(config.promptFile)
-    const payload = {
-      model: config.model,
-      messages: [{ role: "system", content: systemPrompt }, ...messages],
-      stream,
-    }
-
-    const geminiResponse = await callGemini(payload)
-
-    if (stream) {
-      return new Response(geminiResponse as ReadableStream, {
-        headers: {
-          "Content-Type": "text/event-stream",
-          "Cache-Control": "no-cache",
-          Connection: "keep-alive",
-        },
-      })
-    } else {
-      const responseData = geminiResponse
-      let content = responseData.choices?.[0]?.message?.content || ""
-
-      // Apply formatting if requested and not streaming
-      if (format === "markdown") {
-        content = convertToMarkdown(content)
-      } else if (format === "text") {
-        content = extractText(content)
-      }
-      responseData.choices[0].message.content = content
-
-      return NextResponse.json(responseData)
-    }
-  } catch (error: any) {
-    console.error("Error in chat completions API:", error)
-    return NextResponse.json({ error: error.message || "Internal Server Error" }, { status: 500 })
-  }
-}
-
-export default function handler(req: VercelRequest, res: VercelResponse) {
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method Not Allowed" })
-  }
-
-  // A simple mock response mimicking the OpenAI API structure.
-  const mockResponse = {
-    id: `chatcmpl-${Date.now()}`,
-    object: "chat.completion",
-    created: Math.floor(Date.now() / 1000),
-    model: "sheikh-1.5-pro",
-    choices: [
-      {
-        index: 0,
-        message: {
-          role: "assistant",
-          content: "This is a mock response from the Sheikh LLM API endpoint!",
-        },
-        finish_reason: "stop",
-      },
-    ],
-    usage: {
-      prompt_tokens: 10,
-      completion_tokens: 12,
-      total_tokens: 22,
-    },
-  }
-
-  res.status(200).json(mockResponse)
+  return response
 }
