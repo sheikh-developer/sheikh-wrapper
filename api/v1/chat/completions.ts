@@ -6,6 +6,7 @@ import { NextResponse } from "next/server"
 import { sheikhModels } from "../../../../models/registry"
 import { loadPrompt } from "../../../../utils/loadPrompt"
 import { callGemini } from "../../../../utils/callGemini"
+import { convertToMarkdown, extractText } from "../../../../utils/mdxFormatter" // Import new formatter functions
 
 // Define the GET handler for the API route. This is a standard Next.js App Router convention for API routes.
 // The `request` object contains information about the incoming HTTP request.
@@ -17,6 +18,7 @@ export async function GET(request: Request) {
   const model = url.searchParams.get("model") || "sheikh-1.5-ui" // Default model
   const messageContent = url.searchParams.get("message") || "Hello, how are you?"
   const stream = url.searchParams.get("stream") === "true"
+  const format = url.searchParams.get("format") // New: 'markdown' or 'text'
 
   const messages = [{ role: "user", content: messageContent }]
 
@@ -50,8 +52,19 @@ export async function GET(request: Request) {
         },
       })
     } else {
-      // If not streaming, return the JSON response.
-      return NextResponse.json(geminiResponse)
+      // If not streaming, parse the JSON response and format it to be OpenAI-compatible.
+      const responseData = geminiResponse
+      let content = responseData.choices?.[0]?.message?.content || ""
+
+      // Apply formatting if requested and not streaming
+      if (format === "markdown") {
+        content = convertToMarkdown(content)
+      } else if (format === "text") {
+        content = extractText(content)
+      }
+      responseData.choices[0].message.content = content
+
+      return NextResponse.json(responseData)
     }
   } catch (error: any) {
     // Log and return an error response if anything goes wrong during the process.
@@ -62,7 +75,7 @@ export async function GET(request: Request) {
 
 // For POST requests (more typical for chat completions), you would define a POST handler:
 export async function POST(request: Request) {
-  const { model, messages, stream = false } = await request.json()
+  const { model, messages, stream = false, format } = await request.json() // New: 'format' parameter
 
   const config = sheikhModels[model as keyof typeof sheikhModels]
   if (!config) {
@@ -88,7 +101,18 @@ export async function POST(request: Request) {
         },
       })
     } else {
-      return NextResponse.json(geminiResponse)
+      const responseData = geminiResponse
+      let content = responseData.choices?.[0]?.message?.content || ""
+
+      // Apply formatting if requested and not streaming
+      if (format === "markdown") {
+        content = convertToMarkdown(content)
+      } else if (format === "text") {
+        content = extractText(content)
+      }
+      responseData.choices[0].message.content = content
+
+      return NextResponse.json(responseData)
     }
   } catch (error: any) {
     console.error("Error in chat completions API:", error)
