@@ -1,0 +1,6 @@
+{
+  "name": "models",
+  "version": "0.0.0",
+  "description": "Local stub to avoid installing the broken npm package models@0.2.0.",
+  "main": "index.js"
+}
